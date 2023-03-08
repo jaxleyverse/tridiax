@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 
 REQUIRED = [
-    "jax",
+    "jax[cpu]",
     "numpy",
 ]
 
