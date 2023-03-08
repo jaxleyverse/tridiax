@@ -32,3 +32,11 @@ solve = jnp.asarray(np.random.randn(dim))
 indexing = divide_conquer_index(dim)
 solution = thomas_solve(lower, diag, upper, solve, indexing=indexing)
 ```
+
+### Installation
+
+```shell
+git clone https://github.com/mackelab/tridiax.git
+cd tridiax
+pip install -e .
+```
