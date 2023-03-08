@@ -3,6 +3,8 @@ from setuptools import find_packages, setup
 REQUIRED = [
     "jax[cpu]",
     "numpy",
+    "pytest",
+    "black",
 ]
 
 setup(

@@ -5,9 +5,9 @@ from jax import lax
 
 
 def thomas_solve(
-    upper: ndarray,
-    diag: ndarray,
     lower: ndarray,
+    diag: ndarray,
+    upper: ndarray,
     solve: ndarray,
 ) -> ndarray:
     """
@@ -18,13 +18,13 @@ def thomas_solve(
     g = jnp.zeros(n)
     x = jnp.zeros(n)
 
-    w = w.at[0].set(lower[0] / diag[0])
+    w = w.at[0].set(upper[0] / diag[0])
     g = g.at[0].set(solve[0] / diag[0])
 
-    val = (w, lower, diag, upper)
+    val = (w, upper, diag, lower)
     w = lax.fori_loop(1, n - 1, _w_update, val)[0]
 
-    val = (solve, upper, g, diag, w)
+    val = (solve, lower, g, diag, w)
     g = lax.fori_loop(1, n, _g_update, val)[2]
 
     x = x.at[0].set(g[n - 1])

@@ -6,10 +6,10 @@ import jax.numpy as jnp
 from jax.numpy import ndarray
 
 
-def divide_and_conquer_solve(
-    upper: ndarray,
-    diag: ndarray,
+def divide_conquer_solve(
     lower: ndarray,
+    diag: ndarray,
+    upper: ndarray,
     solve: ndarray,
     indexing: Optional[ndarray] = None,
 ) -> ndarray:
@@ -22,8 +22,7 @@ def divide_and_conquer_solve(
             done automatically, but this can take a few seconds. Instead, if
             `indexing` is passed, it is direclty used to reorder the result. This can
             be helpful if `divide_and_conquer` is applied successively for many systems
-            of the same size. Use
-            ```indexing = reorder(jnp.expand_dims(jnp.arange(0, dim), 1), dim)``` to
+            of the same size. Use ```indexing = divide_conquer_index(dim)``` to 
             precompute the indizes.
     """
     dim = len(diag)
@@ -36,20 +35,27 @@ def divide_and_conquer_solve(
     # Reduce the system.
     for _ in range(int(log2(dim))):
         a_bars, b_bars, c_bars, solve_bars = vmap(_reduce_system)(
-            (upper, diag, lower, solve)
+            (lower, diag, upper, solve)
         )
-        lower = _split(c_bars)
+        upper = _split(c_bars)
         diag = _split(b_bars)
-        upper = _split(a_bars)
+        lower = _split(a_bars)
         solve = _split(solve_bars)
 
     # Solve the (now diagonal) system.
-    x = jnp.squeeze(solve / diag)
+    x = solve / diag
 
-    return reorder(x, dim) if indexing is None else x[indexing]
+    if indexing is None:
+        return jnp.squeeze(_reorder(x, dim))
+    else:
+        return jnp.squeeze(x)[indexing]
 
 
-def reorder(x, dim):
+def divide_conquer_index(dim: int):
+    return _reorder(jnp.expand_dims(jnp.arange(0, dim), 1), dim)[0]
+
+
+def _reorder(x, dim):
     """
     Reorder the solution.
     """
@@ -60,7 +66,7 @@ def reorder(x, dim):
 
 
 def _reduce_system(vecs):
-    upper, diag, lower, solve = vecs
+    lower, diag, upper, solve = vecs
     a = upper
     b = diag
     c = lower
@@ -77,7 +83,7 @@ def _reduce_system(vecs):
 
     r_bar = r.at[:-1].set(r[:-1] + alpha1 * r[1:])
     r_bar = r_bar.at[1:].set(r_bar[1:] + beta1 * r[:-1])
-    return (a_bar, b_bar, c_bar, r_bar)
+    return (c_bar, b_bar, a_bar, r_bar)
 
 
 def _split(vector):
