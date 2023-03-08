@@ -1,0 +1,2 @@
+from tridiax.thomas import thomas_solve
+from tridiax.divide_and_conquer import divide_and_conquer_solve
