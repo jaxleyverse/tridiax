@@ -19,8 +19,6 @@ solve = jnp.asarray(np.random.randn(dim))
 solution = thomas_solve(lower, diag, upper, solve)
 ```
 
-### Optimization
-
 If many systems of the same size are solved and the divide and conquer algorithm is used, it helps to precompute the reordering indizes:
 ```python
 from tridiax import divide_conquer_solve, divide_conquer_index
