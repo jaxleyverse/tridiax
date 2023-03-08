@@ -35,7 +35,7 @@ solution = thomas_solve(lower, diag, upper, solve, indexing=indexing)
 
 ### Installation
 
-```shell
+```sh
 git clone https://github.com/mackelab/tridiax.git
 cd tridiax
 pip install -e .
