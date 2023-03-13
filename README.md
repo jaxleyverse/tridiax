@@ -1,5 +1,4 @@
 [![Tests](https://github.com/mackelab/sbi/workflows/Tests/badge.svg?branch=main)](https://github.com/mackelab/sbi/actions)
-[![GitHub license](https://img.shields.io/github/license/mackelab/tridiax)](https://github.com/mackelab/tridiax/blob/main/LICENSE)
 
 # tridiax
 `tridiax` implements solvers for tridiagonal systems in jax. All solvers support CPU and GPU, are compatible with `jit` compilation and can be differentiated with `grad`.
