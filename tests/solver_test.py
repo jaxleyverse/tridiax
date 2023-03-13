@@ -6,6 +6,7 @@ from copy import deepcopy
 
 import jax
 import jax.numpy as jnp
+from jax import jit, grad
 import numpy as np
 from tridiax import (
     thomas_solve,
@@ -54,6 +55,39 @@ def test_solver_accuracy(solve_fn):
     solution_np = np.linalg.solve(tridiag_matrix, solve)
     error = np.abs(solution - solution_np) / solution_np
     assert np.all(error < 1e-4)
+
+
+@pytest.mark.parametrize("solve_fn", [thomas_solve, divide_conquer_solve, stone_solve])
+def test_jit(solve_fn):
+    dim = 32
+    _ = np.random.seed(0)
+    diag = jnp.asarray(np.random.randn(dim))
+    upper = jnp.asarray(np.random.randn(dim - 1))
+    lower = jnp.asarray(np.random.randn(dim - 1))
+    solve = jnp.asarray(np.random.randn(dim))
+
+    jitted_solver = jit(solve_fn)
+    _ = jitted_solver(lower, diag, upper, solve)
+
+
+@pytest.mark.parametrize("solve_fn", [thomas_solve, divide_conquer_solve, stone_solve])
+def test_grad(solve_fn):
+    dim = 32
+    _ = np.random.seed(0)
+    diag = jnp.asarray(np.random.randn(dim))
+    upper = jnp.asarray(np.random.randn(dim - 1))
+    lower = jnp.asarray(np.random.randn(dim - 1))
+    solve = jnp.asarray(np.random.randn(dim))
+
+    def sum_solution(vals):
+        lower, diag, upper, solve = vals
+        x = solve_fn(lower, diag, upper, solve)
+        return jnp.sum(x)
+
+    jitted_grad = jit(grad(sum_solution))
+    gradient = jitted_grad((lower, diag, upper, solve))
+    for g in gradient:
+        assert jnp.invert(jnp.any(jnp.isnan(g))), "Found NaN in gradient."
 
 
 def test_divide_and_conquer_preinit():
