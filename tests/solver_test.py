@@ -7,7 +7,12 @@ from copy import deepcopy
 import jax
 import jax.numpy as jnp
 import numpy as np
-from tridiax import thomas_solve, divide_conquer_solve, divide_conquer_index
+from tridiax import (
+    thomas_solve,
+    divide_conquer_solve,
+    stone_solve,
+    divide_conquer_index,
+)
 import pytest
 
 
@@ -15,8 +20,8 @@ device_str = "cpu"
 jax.config.update("jax_platform_name", device_str)
 
 
-@pytest.mark.parametrize("solve_fn", [thomas_solve, divide_conquer_solve])
-def solver_api(solve_fn):
+@pytest.mark.parametrize("solve_fn", [thomas_solve, divide_conquer_solve, stone_solve])
+def test_solver_api(solve_fn):
     dim = 1024
     _ = np.random.seed(0)
     diag = jnp.asarray(np.random.randn(dim))
@@ -27,7 +32,7 @@ def solver_api(solve_fn):
     assert solution.shape == (dim,)
 
 
-@pytest.mark.parametrize("solve_fn", [thomas_solve, divide_conquer_solve])
+@pytest.mark.parametrize("solve_fn", [thomas_solve, divide_conquer_solve, stone_solve])
 def test_solver_accuracy(solve_fn):
     dim = 32
     _ = np.random.seed(0)
