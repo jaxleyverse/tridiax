@@ -35,13 +35,13 @@ def thomas_solve(
 
 
 def _w_update(i, val):
-    w, c, b, a = val
+    w, c, b, a = val  # c=upper, b=diag, a=lower
     w = w.at[i].set(c[i] / (b[i] - a[i - 1] * w[i - 1]))
     return (w, c, b, a)
 
 
 def _g_update(i, val):
-    d, a, g, b, w = val
+    d, a, g, b, w = val  # d=solve, a=lower, g=g, b=diag, w=w
     g = g.at[i].set((d[i] - a[i - 1] * g[i - 1]) / (b[i] - a[i - 1] * w[i - 1]))
     return (d, a, g, b, w)
 

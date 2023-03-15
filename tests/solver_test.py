@@ -21,6 +21,20 @@ device_str = "cpu"
 jax.config.update("jax_platform_name", device_str)
 
 
+def build_tridiag_matrix(lower, diag, upper):
+    dim = len(diag)
+    tridiag_matrix = np.zeros((dim, dim))
+    for row in range(dim):
+        for col in range(dim):
+            if row == col:
+                tridiag_matrix[row, col] = deepcopy(diag[row])
+            if row + 1 == col:
+                tridiag_matrix[row, col] = deepcopy(upper[row])
+            if row - 1 == col:
+                tridiag_matrix[row, col] = deepcopy(lower[col])
+    return tridiag_matrix
+
+
 @pytest.mark.parametrize("solve_fn", [thomas_solve, divide_conquer_solve, stone_solve])
 def test_solver_api(solve_fn):
     dim = 1024
@@ -43,15 +57,7 @@ def test_solver_accuracy(solve_fn):
     solve = jnp.asarray(np.random.randn(dim))
     solution = solve_fn(lower, diag, upper, solve)
 
-    tridiag_matrix = np.zeros((dim, dim))
-    for row in range(dim):
-        for col in range(dim):
-            if row == col:
-                tridiag_matrix[row, col] = deepcopy(diag[row])
-            if row + 1 == col:
-                tridiag_matrix[row, col] = deepcopy(upper[row])
-            if row - 1 == col:
-                tridiag_matrix[row, col] = deepcopy(lower[col])
+    tridiag_matrix = build_tridiag_matrix(lower, diag, upper)
     solution_np = np.linalg.solve(tridiag_matrix, solve)
     error = np.abs(solution - solution_np) / solution_np
     assert np.all(error < 1e-4)
@@ -107,3 +113,25 @@ def test_divide_and_conquer_preinit():
 
     error = np.abs(solution_preinit - solution_from_scratch) / solution_preinit
     assert np.all(error < 1e-4)
+
+
+@pytest.mark.parametrize("stabilize", [True, False])
+@pytest.mark.parametrize("optimized_lu", [True, False])
+@pytest.mark.parametrize("dim", [32, 512])
+def test_stone_options(stabilize: bool, optimized_lu: bool, dim: int):
+    _ = np.random.seed(0)
+    diag = jnp.asarray(np.random.randn(dim))
+    upper = jnp.asarray(np.random.randn(dim - 1))
+    lower = jnp.asarray(np.random.randn(dim - 1))
+    solve = jnp.asarray(np.random.randn(dim))
+
+    solution = stone_solve(
+        lower, diag, upper, solve, stabilize=stabilize, optimized_lu=optimized_lu
+    )
+
+    tridiag_matrix = build_tridiag_matrix(lower, diag, upper)
+    solution_np = np.linalg.solve(tridiag_matrix, solve)
+    if stabilize or dim < 500:
+        assert jnp.invert(jnp.any(jnp.isnan(solution)))
+        error = np.abs(solution - solution_np) / solution_np
+        assert np.median(error < 1e-3)

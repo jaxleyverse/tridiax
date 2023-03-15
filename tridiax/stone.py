@@ -1,11 +1,14 @@
 from typing import Tuple
-import jax
 import jax.numpy as jnp
-from jax import lax
 
 
 def stone_solve(
-    lower: jnp.ndarray, diag: jnp.ndarray, upper: jnp.ndarray, solve: jnp.ndarray
+    lower: jnp.ndarray,
+    diag: jnp.ndarray,
+    upper: jnp.ndarray,
+    solve: jnp.ndarray,
+    stabilize: bool = True,
+    optimized_lu: bool = True,
 ) -> jnp.ndarray:
     """
     Return solution `x` to tridiagonal system `Ax = b` with Stone's algorithm.
@@ -15,11 +18,13 @@ def stone_solve(
     2) Triangularization: Solve Ly = b
     3) Backsubstitution: Solve Ux = y
     """
-
     # LU decomposition. `u` is the diagonal of U. `m` is the lower diagonal of `l`.
     # The upper diagonal of U is `upper`. The main diagonal of L is 1. Notation follows
     # Stone (1973).
-    u, m = _lu(lower, diag, upper, solve)
+    if optimized_lu:
+        u, m = _lu(lower, diag, upper, solve, stabilize=stabilize)
+    else:
+        u, m = _lu_matmul(lower, diag, upper, solve, stabilize=stabilize)
 
     # Triangularization.
     y = _triang(solve, m)
@@ -30,8 +35,34 @@ def stone_solve(
     return x
 
 
+def _lu_serial(
+    lower: jnp.ndarray,
+    diag: jnp.ndarray,
+    upper: jnp.ndarray,
+    solve: jnp.ndarray,
+) -> Tuple[jnp.ndarray, jnp.ndarray]:
+    N = len(solve)
+    ui = jnp.zeros_like(diag)
+    ui = ui.at[0].set(diag[0])
+
+    for i in range(1, N):
+        ui = ui.at[i].set(diag[i] - lower[i - 1] * upper[i - 1] / ui[i - 1])
+
+    mi = jnp.zeros_like(lower)
+    mi = mi.at[0].set(lower[0] / diag[0])
+
+    for i in range(1, N - 1):
+        mi = mi.at[i].set(lower[i] / (diag[i] - upper[i - 1] * mi[i - 1]))
+
+    return ui, mi
+
+
 def _lu(
-    lower: jnp.ndarray, diag: jnp.ndarray, upper: jnp.ndarray, solve: jnp.ndarray
+    lower: jnp.ndarray,
+    diag: jnp.ndarray,
+    upper: jnp.ndarray,
+    solve: jnp.ndarray,
+    stabilize: bool = True,
 ) -> Tuple[jnp.ndarray, jnp.ndarray]:
     N = len(solve)
     E = lower
@@ -48,6 +79,12 @@ def _lu(
 
     i = 2
     while i <= N / 2:
+        if stabilize:
+            av_qi = jnp.mean(QI)
+            QIM2 /= av_qi
+            QIM1 /= av_qi
+            QI /= av_qi
+
         temp = temp.at[i - 2 : N].set(
             QIM1[i - 1 : N + 1] * QIM1[: N - i + 2]
             + EF[: N - i + 2] * QIM2[i : N + 2] * QIM2[: N - i + 2]
@@ -58,11 +95,51 @@ def _lu(
         )
         QIM2 = QIM2.at[i : N + 2].set(temp[i - 2 : N])
         QI = QI.at[i:N].set(D[i:N] * QIM1[i:N] + EF[i:N] * QIM2[i:N])
+
         i += i
 
     U = U.at[:N].set(QI[:N] / QIM1[:N])
     M = M.at[: N - 1].set(E[: N - 1] / U[: N - 1])
 
+    return U, M
+
+
+def _lu_matmul(
+    lower: jnp.ndarray,
+    diag: jnp.ndarray,
+    upper: jnp.ndarray,
+    solve: jnp.ndarray,
+    stabilize: bool = True,
+) -> Tuple[jnp.ndarray, jnp.ndarray]:
+    """Implements an alternative way for computing the LU decomposition."""
+    N = len(solve)
+    E = lower
+    M = jnp.zeros_like(upper)
+
+    a_vals = jnp.zeros((N - 1, 2, 2))
+    a_vals = a_vals.at[:, 0, 0].set(diag[1:])
+    a_vals = a_vals.at[:, 0, 1].set(-upper * lower)
+    a_vals = a_vals.at[:, 1, 0].set(1.0)
+
+    i = 1
+    while i < N:
+        product = jnp.einsum("bij, bjk -> bik", a_vals[i : N - 1], a_vals[: N - i - 1])
+        a_vals = a_vals.at[i : N - 1].set(product)
+
+        if stabilize:
+            a_vals = jnp.einsum(
+                "bij, b -> bij", a_vals, 1 / jnp.mean(a_vals, axis=(1, 2))
+            )
+
+        i += i
+
+    q_init = jnp.asarray([1.0, diag[0]])
+    qs = jnp.einsum("bij, j -> bi", a_vals, q_init)
+
+    qs = jnp.concatenate([jnp.asarray([[diag[0], 1.0]]), qs])
+    U = qs[:, 0] / qs[:, 1]
+
+    M = M.at[: N - 1].set(E[: N - 1] / U[: N - 1])
     return U, M
 
 
