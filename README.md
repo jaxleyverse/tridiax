@@ -6,7 +6,7 @@
 
 ### Implemented solvers
 
-- Thomas algorithm
+- [Thomas algorithm](http://www.industrial-maths.com/ms6021_thomas.pdf)
 - [Divide and conquer](https://courses.engr.illinois.edu/cs554/fa2013/notes/09_tridiagonal_8up.pdf)
 - [Stone's algorithm](https://dl.acm.org/doi/pdf/10.1145/321738.321741)
 
