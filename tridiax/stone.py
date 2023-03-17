@@ -18,21 +18,39 @@ def stone_solve(
     2) Triangularization: Solve Ly = b
     3) Backsubstitution: Solve Ux = y
     """
-    # LU decomposition. `u` is the diagonal of U. `m` is the lower diagonal of `l`.
-    # The upper diagonal of U is `upper`. The main diagonal of L is 1. Notation follows
-    # Stone (1973).
+    u, y = stone_triang(
+        lower, diag, upper, solve, stabilize=stabilize, optimized_lu=optimized_lu
+    )
+    x = stone_backsub(y, upper, u)
+
+    return x
+
+
+def stone_triang(
+    lower: jnp.ndarray,
+    diag: jnp.ndarray,
+    upper: jnp.ndarray,
+    solve: jnp.ndarray,
+    stabilize: bool = True,
+    optimized_lu: bool = True,
+) -> Tuple[jnp.ndarray, jnp.ndarray]:
+    """
+    LU decomposition. `u` is the diagonal of U. `m` is the lower diagonal of `l`.
+    The upper diagonal of U is `upper`. The main diagonal of L is 1. Notation follows
+    Stone (1973).
+    """
     if optimized_lu:
         u, m = _lu(lower, diag, upper, solve, stabilize=stabilize)
     else:
         u, m = _lu_matmul(lower, diag, upper, solve, stabilize=stabilize)
+    y = _solve_l(solve, m)
+    return u, y
 
-    # Triangularization.
-    y = _triang(solve, m)
 
-    # Backsubstituion.
-    x = _backsub(y, upper, u)
-
-    return x
+def stone_backsub(
+    solve: jnp.ndarray, upper: jnp.ndarray, diag: jnp.ndarray
+) -> jnp.ndarray:
+    return _solve_u(solve, upper, diag)
 
 
 def _lu_serial(
@@ -143,7 +161,7 @@ def _lu_matmul(
     return U, M
 
 
-def _triang(solve: jnp.ndarray, m: jnp.ndarray) -> jnp.ndarray:
+def _solve_l(solve: jnp.ndarray, m: jnp.ndarray) -> jnp.ndarray:
     N = len(solve)
     Yi = solve
     Mi = -m
@@ -157,7 +175,7 @@ def _triang(solve: jnp.ndarray, m: jnp.ndarray) -> jnp.ndarray:
     return Yi
 
 
-def _backsub(solve: jnp.ndarray, upper: jnp.ndarray, diag: jnp.ndarray) -> jnp.ndarray:
+def _solve_u(solve: jnp.ndarray, upper: jnp.ndarray, diag: jnp.ndarray) -> jnp.ndarray:
     N = len(diag)
 
     upper_diag_1 = jnp.asarray(upper / diag[:-1])

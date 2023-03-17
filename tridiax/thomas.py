@@ -1,3 +1,5 @@
+from typing import Optional
+
 import jax
 import jax.numpy as jnp
 from jax.numpy import ndarray
@@ -13,23 +15,35 @@ def thomas_solve(
     """
     Return solution `x` to tridiagonal system `Ax = b` with Thomas algorithm.
     """
+    u_upper, y = thomas_triang(lower, diag, upper, solve)
+    return thomas_backsub(y, u_upper)
+
+
+def thomas_triang(
+    lower: jnp.ndarray,
+    diag: jnp.ndarray,
+    upper: jnp.ndarray,
+    solve: jnp.ndarray,
+):
     n = len(solve)
-    w = jnp.zeros(n - 1)
-    g = jnp.zeros(n)
+    u_upper = jnp.zeros(n - 1)
+    u_upper = u_upper.at[0].set(upper[0] / diag[0])
+    u_upper = lax.fori_loop(1, n - 1, _w_update, (u_upper, upper, diag, lower))[0]
+
+    y = jnp.zeros(n)
+    y = y.at[0].set(solve[0] / diag[0])
+    y = lax.fori_loop(1, n, _g_update, (solve, lower, y, diag, u_upper))[2]
+
+    return u_upper, y
+
+
+def thomas_backsub(
+    solve: jnp.ndarray, upper: jnp.ndarray, diag: Optional[jnp.ndarray] = None
+):
+    n = len(solve)
     x = jnp.zeros(n)
-
-    w = w.at[0].set(upper[0] / diag[0])
-    g = g.at[0].set(solve[0] / diag[0])
-
-    val = (w, upper, diag, lower)
-    w = lax.fori_loop(1, n - 1, _w_update, val)[0]
-
-    val = (solve, lower, g, diag, w)
-    g = lax.fori_loop(1, n, _g_update, val)[2]
-
-    x = x.at[0].set(g[n - 1])
-    val = (g, w, x, n)
-    x = lax.fori_loop(0, n - 1, _p_update, val)[2]
+    x = x.at[0].set(solve[n - 1])
+    x = lax.fori_loop(0, n - 1, _p_update, (solve, upper, x, n))[2]
 
     return jnp.flip(x)
 
