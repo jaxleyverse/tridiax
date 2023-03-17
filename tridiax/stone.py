@@ -18,7 +18,7 @@ def stone_solve(
     2) Triangularization: Solve Ly = b
     3) Backsubstitution: Solve Ux = y
     """
-    u, y = stone_triang(
+    u, upper, y = stone_triang(
         lower, diag, upper, solve, stabilize=stabilize, optimized_lu=optimized_lu
     )
     x = stone_backsub(y, upper, u)
@@ -44,7 +44,7 @@ def stone_triang(
     else:
         u, m = _lu_matmul(lower, diag, upper, solve, stabilize=stabilize)
     y = _solve_l(solve, m)
-    return u, y
+    return u, upper, y
 
 
 def stone_backsub(
