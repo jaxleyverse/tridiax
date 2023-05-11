@@ -43,7 +43,7 @@ lower = jnp.asarray(np.random.randn(dim - 1))
 solve = jnp.asarray(np.random.randn(dim))
 
 indexing = divide_conquer_index(dim)
-solution = thomas_solve(lower, diag, upper, solve, indexing=indexing)
+solution = divide_conquer_solve(lower, diag, upper, solve, indexing=indexing)
 ```
 
 ### Installation
