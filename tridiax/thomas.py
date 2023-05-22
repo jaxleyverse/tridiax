@@ -37,30 +37,39 @@ def thomas_triang(
     support this using `thomas_triang` in `neurax`.
     """
     n = len(solve)
-    u_upper = jnp.zeros(n - 1)
-    u_upper = u_upper.at[0].set(upper[0] / diag[0])
-    u_upper = lax.fori_loop(1, n - 1, _u_upper_update, (u_upper, upper, diag, lower))[0]
+    # Triangulation is only needed for matrizes, not scalars.
+    if n > 1:
+        u_upper = jnp.zeros(n - 1)
+        u_upper = u_upper.at[0].set(upper[0] / diag[0])
+        u_upper = lax.fori_loop(
+            1, n - 1, _u_upper_update, (u_upper, upper, diag, lower)
+        )[0]
 
-    y = jnp.zeros(n)
-    y = y.at[0].set(solve[0] / diag[0])
-    y = lax.fori_loop(1, n - 1, _y_update, (solve, lower, y, diag, u_upper))[2]
+        y = jnp.zeros(n)
+        y = y.at[0].set(solve[0] / diag[0])
+        y = lax.fori_loop(1, n - 1, _y_update, (solve, lower, y, diag, u_upper))[2]
 
-    # Handle last row separately.
-    newdiag = jnp.ones_like(diag)
-    y = y.at[-1].set(solve[-1] - lower[-1] * y[-2])
-    if divide_last:
-        y = y.at[-1].set(y[-1] / (diag[-1] - lower[-1] * u_upper[-1]))
+        # Handle last row separately.
+        newdiag = jnp.ones_like(diag)
+        y = y.at[-1].set(solve[-1] - lower[-1] * y[-2])
+        if divide_last:
+            y = y.at[-1].set(y[-1] / (diag[-1] - lower[-1] * u_upper[-1]))
+        else:
+            newdiag = newdiag.at[-1].set(diag[-1] - lower[-1] * u_upper[-1])
+
+        return newdiag, u_upper, y
     else:
-        newdiag = newdiag.at[-1].set(diag[-1] - lower[-1] * u_upper[-1])
-
-    return newdiag, u_upper, y
+        return diag, upper, solve
 
 
 def thomas_backsub(solve: jnp.ndarray, upper: jnp.ndarray, diag: jnp.ndarray):
     n = len(solve)
     x = jnp.zeros(n)
     x = x.at[0].set(solve[n - 1] / diag[n - 1])
-    x = lax.fori_loop(0, n - 1, _x_update, (solve, upper, x, n))[2]
+    # This if-case should not be necessary, but even if fori does not do any
+    # iterations, it still traces the body_fun and breaks without this if-case.
+    if n > 1:
+        x = lax.fori_loop(0, n - 1, _x_update, (solve, upper, x, n))[2]
 
     return jnp.flip(x)
 
