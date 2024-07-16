@@ -5,8 +5,8 @@ from typing import Optional
 
 import jax
 import jax.numpy as jnp
-from jax.numpy import ndarray
 from jax import lax
+from jax.numpy import ndarray
 
 
 def thomas_solve(
