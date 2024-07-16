@@ -9,16 +9,12 @@ from copy import deepcopy
 
 import jax
 import jax.numpy as jnp
-from jax import jit, grad
 import numpy as np
-from tridiax import (
-    thomas_solve,
-    divide_conquer_solve,
-    stone_solve,
-    divide_conquer_index,
-)
 import pytest
+from jax import grad, jit
 
+from tridiax import (divide_conquer_index, divide_conquer_solve, stone_solve,
+                     thomas_solve)
 
 device_str = "cpu"
 jax.config.update("jax_platform_name", device_str)

@@ -1,11 +1,11 @@
 # This file is part of tridiax, a toolkit for solving tridiagonal systems. tridiax is
 # licensed under the Apache License Version 2.0, see <https://www.apache.org/licenses/>
 
+from math import log2
 from typing import Optional
 
-from math import log2
-from jax import vmap
 import jax.numpy as jnp
+from jax import vmap
 from jax.numpy import ndarray
 
 

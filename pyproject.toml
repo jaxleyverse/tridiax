@@ -28,8 +28,9 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
     "black",
+    "isort",
+    "pytest",
 ]
 
 [project.urls]
