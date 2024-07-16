@@ -13,8 +13,12 @@ import numpy as np
 import pytest
 from jax import grad, jit
 
-from tridiax import (divide_conquer_index, divide_conquer_solve, stone_solve,
-                     thomas_solve)
+from tridiax import (
+    divide_conquer_index,
+    divide_conquer_solve,
+    stone_solve,
+    thomas_solve,
+)
 
 device_str = "cpu"
 jax.config.update("jax_platform_name", device_str)
