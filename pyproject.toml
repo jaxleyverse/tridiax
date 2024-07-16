@@ -1,0 +1,62 @@
+[project]
+name = "tridiax"
+version = "0.1.0"
+description = "Solving tridiagonal systems."
+authors = [
+    { name = "jaxleyverse", email = "jaxleyverse@gmail.com"},
+]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "Topic :: Adaptive Technologies",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    """License :: OSI Approved :: Apache License, Version 2.0 (Apache-2.0)""",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Development Status :: 3 - Alpha",
+]
+requires-python = ">=3.8"
+readme = "README.md"
+keywords = ["tridiagonal", "linear algebra", "solver", "jax"]
+dependencies = [
+    "jax",
+    "numpy",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+]
+
+[project.urls]
+source = "https://github.com/jaxleyverse/tridiax"
+tracker = "https://github.com/jaxleyverse/tridiax/issues"
+
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# Package installation configuration
+[tool.setuptools.packages.find]
+where = ["."]  # list of folders that contain the packages (["."] by default)
+include = ["tridiax*"]  # package names should match these glob patterns (["*"] by default)
+namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
+
+# Pytest configuration
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning"
+]
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "gpu: marks tests that require a gpu (deselect with '-m \"not gpu\"')",
+]
+xfail_strict = true
