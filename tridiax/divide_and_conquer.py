@@ -22,7 +22,7 @@ def divide_conquer_solve(
             done automatically, but this can take a few seconds. Instead, if
             `indexing` is passed, it is direclty used to reorder the result. This can
             be helpful if `divide_and_conquer` is applied successively for many systems
-            of the same size. Use ```indexing = divide_conquer_index(dim)``` to 
+            of the same size. Use ```indexing = divide_conquer_index(dim)``` to
             precompute the indizes.
     """
     dim = len(diag)
