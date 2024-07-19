@@ -1,9 +1,6 @@
 # This file is part of tridiax, a toolkit for solving tridiagonal systems. tridiax is
 # licensed under the Apache License Version 2.0, see <https://www.apache.org/licenses/>
 
-from typing import Optional
-
-import jax
 import jax.numpy as jnp
 from jax import lax
 from jax.numpy import ndarray
@@ -24,11 +21,13 @@ def thomas_solve(
             such that the entire diagonal is 1. If `False`, this step will be skipped
             only for the very last value on the diagonal.
     """
-    u, u_upper, y = thomas_triang(lower, diag, upper, solve, divide_last=divide_last)
-    return thomas_backsub(y, u_upper, u)
+    u, u_upper, y = thomas_triang_upper(
+        lower, diag, upper, solve, divide_last=divide_last
+    )
+    return thomas_backsub_lower(y, u_upper, u)
 
 
-def thomas_triang(
+def thomas_triang_lower(
     lower: jnp.ndarray,
     diag: jnp.ndarray,
     upper: jnp.ndarray,
@@ -65,7 +64,26 @@ def thomas_triang(
         return diag, upper, solve
 
 
-def thomas_backsub(solve: jnp.ndarray, upper: jnp.ndarray, diag: jnp.ndarray):
+def thomas_triang_upper(
+    lower: jnp.ndarray,
+    diag: jnp.ndarray,
+    upper: jnp.ndarray,
+    solve: jnp.ndarray,
+    divide_last: bool = False,
+):
+    """Triangulate system by removing the upper diagonal."""
+    diag, lower, y = thomas_triang_lower(
+        lower=jnp.flip(upper),
+        diag=jnp.flip(diag),
+        upper=jnp.flip(lower),
+        solve=jnp.flip(solve),
+        divide_last=divide_last,
+    )
+    return jnp.flip(diag), jnp.flip(lower), jnp.flip(y)
+
+
+def thomas_backsub_upper(solve: jnp.ndarray, upper: jnp.ndarray, diag: jnp.ndarray):
+    """Backsubstitute to remove the upper diagonal."""
     n = len(solve)
     x = jnp.zeros(n)
     x = x.at[0].set(solve[n - 1] / diag[n - 1])
@@ -75,6 +93,13 @@ def thomas_backsub(solve: jnp.ndarray, upper: jnp.ndarray, diag: jnp.ndarray):
         x = lax.fori_loop(0, n - 1, _x_update, (solve, upper, x, n))[2]
 
     return jnp.flip(x)
+
+
+def thomas_backsub_lower(solve: jnp.ndarray, lower: jnp.ndarray, diag: jnp.ndarray):
+    """Backsubstitute to remove the lower diagonal."""
+    solution = thomas_backsub_upper(jnp.flip(solve), jnp.flip(lower), jnp.flip(diag))
+    return jnp.flip(solution)
+
 
 
 def _u_upper_update(i, val):
