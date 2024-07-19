@@ -42,27 +42,27 @@ def thomas_triang(
     n = len(solve)
     # Triangulation is only needed for matrizes, not scalars.
     if n > 1:
-        u_upper = jnp.zeros(n - 1)
-        u_upper = u_upper.at[0].set(upper[0] / diag[0])
-        u_upper = lax.fori_loop(
-            1, n - 1, _u_upper_update, (u_upper, upper, diag, lower)
+        u_lower = jnp.zeros(n - 1)
+        u_lower = u_lower.at[0].set(lower[0] / diag[0])
+        u_lower = lax.fori_loop(
+            1, n - 1, _u_lower_update, (u_lower, upper, diag, lower)
         )[0]
 
         y = jnp.zeros(n)
         y = y.at[0].set(solve[0] / diag[0])
-        y = lax.fori_loop(1, n - 1, _y_update, (solve, lower, y, diag, u_upper))[2]
+        y = lax.fori_loop(1, n - 1, _y_update, (solve, upper, y, diag, u_lower))[2]
 
         # Handle last row separately.
         newdiag = jnp.ones_like(diag)
-        y = y.at[-1].set(solve[-1] - lower[-1] * y[-2])
+        y = y.at[-1].set(solve[-1] - upper[-1] * y[-2])
         if divide_last:
-            y = y.at[-1].set(y[-1] / (diag[-1] - lower[-1] * u_upper[-1]))
+            y = y.at[-1].set(y[-1] / (diag[-1] - upper[-1] * u_lower[-1]))
         else:
-            newdiag = newdiag.at[-1].set(diag[-1] - lower[-1] * u_upper[-1])
+            newdiag = newdiag.at[-1].set(diag[-1] - upper[-1] * u_lower[-1])
 
-        return newdiag, u_upper, y
+        return newdiag, u_lower, y
     else:
-        return diag, upper, solve
+        return diag, lower, solve
 
 
 def thomas_backsub(solve: jnp.ndarray, upper: jnp.ndarray, diag: jnp.ndarray):
@@ -81,6 +81,12 @@ def _u_upper_update(i, val):
     u_upper, upper, diag, lower = val
     u_upper = u_upper.at[i].set(upper[i] / (diag[i] - lower[i - 1] * u_upper[i - 1]))
     return (u_upper, upper, diag, lower)
+
+
+def _u_lower_update(i, val):
+    u_lower, upper, diag, lower = val
+    u_lower = u_lower.at[i].set(lower[i] / (diag[i] - upper[i - 1] * u_lower[i - 1]))
+    return (u_lower, lower, diag, upper)
 
 
 def _y_update(i, val):
