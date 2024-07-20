@@ -36,7 +36,7 @@ def thomas_triang_lower(
 ):
     """
     Note that `divide_last=False` by default here, unlike in `thomas_solve`. This is to
-    support this using `thomas_triang` in `neurax`.
+    support this using `thomas_triang` in `Jaxley`.
     """
     n = len(solve)
     # Triangulation is only needed for matrizes, not scalars.
