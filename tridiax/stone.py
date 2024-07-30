@@ -22,15 +22,15 @@ def stone_solve(
     2) Triangularization: Solve Ly = b
     3) Backsubstitution: Solve Ux = y
     """
-    u, upper, y = stone_triang(
+    u, upper, y = stone_triang_upper(
         lower, diag, upper, solve, stabilize=stabilize, optimized_lu=optimized_lu
     )
-    x = stone_backsub(y, upper, u)
+    x = stone_backsub_lower(y, upper, u)
 
     return x
 
 
-def stone_triang(
+def stone_triang_lower(
     lower: jnp.ndarray,
     diag: jnp.ndarray,
     upper: jnp.ndarray,
@@ -51,10 +51,36 @@ def stone_triang(
     return u, upper, y
 
 
-def stone_backsub(
+def stone_triang_upper(
+    lower: jnp.ndarray,
+    diag: jnp.ndarray,
+    upper: jnp.ndarray,
+    solve: jnp.ndarray,
+    stabilize: bool = True,
+    optimized_lu: bool = True,
+):
+    """Triangulate system by removing the upper diagonal."""
+    diag, lower, y = stone_triang_lower(
+        lower=jnp.flip(upper),
+        diag=jnp.flip(diag),
+        upper=jnp.flip(lower),
+        solve=jnp.flip(solve),
+        stabilize=stabilize,
+        optimized_lu=optimized_lu,
+    )
+    return jnp.flip(diag), jnp.flip(lower), jnp.flip(y)
+
+
+def stone_backsub_upper(
     solve: jnp.ndarray, upper: jnp.ndarray, diag: jnp.ndarray
 ) -> jnp.ndarray:
     return _solve_u(solve, upper, diag)
+
+
+def stone_backsub_lower(solve: jnp.ndarray, lower: jnp.ndarray, diag: jnp.ndarray):
+    """Backsubstitute to remove the lower diagonal."""
+    solution = stone_backsub_upper(jnp.flip(solve), jnp.flip(lower), jnp.flip(diag))
+    return jnp.flip(solution)
 
 
 def _lu_serial(
