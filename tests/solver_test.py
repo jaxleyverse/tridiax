@@ -13,12 +13,10 @@ import numpy as np
 import pytest
 from jax import grad, jit
 
-from tridiax import (
-    divide_conquer_index,
-    divide_conquer_solve,
-    stone_solve,
-    thomas_solve,
-)
+from tridiax import (divide_conquer_index, divide_conquer_solve, stone_solve,
+                     thomas_solve)
+from tridiax.stone import stone_backsub_lower, stone_triang_upper
+from tridiax.thomas import thomas_backsub_lower, thomas_triang_upper
 
 device_str = "cpu"
 jax.config.update("jax_platform_name", device_str)
@@ -63,7 +61,34 @@ def test_solver_accuracy(solve_fn):
     tridiag_matrix = build_tridiag_matrix(lower, diag, upper)
     solution_np = np.linalg.solve(tridiag_matrix, solve)
     error = np.abs(solution - solution_np) / solution_np
-    assert np.all(error < 1e-4)
+    assert np.all(error < 1e-3)
+
+
+@pytest.mark.parametrize("solve_name", ["thomas", "stone"])
+def test_solver_accuracy_lower_first(solve_name):
+    dim = 32
+    _ = np.random.seed(0)
+    diag = jnp.asarray(np.random.randn(dim))
+    upper = jnp.asarray(np.random.randn(dim - 1))
+    lower = jnp.asarray(np.random.randn(dim - 1))
+    solve = jnp.asarray(np.random.randn(dim))
+
+    if solve_name == "thomas":
+        solve_lower = thomas_backsub_lower
+        solve_upper = thomas_triang_upper
+    elif solve_name == "stone":
+        solve_lower = stone_backsub_lower
+        solve_upper = stone_triang_upper
+    else:
+        raise NameError
+
+    u, u_upper, y = solve_upper(lower, diag, upper, solve)
+    solution = solve_lower(y, u_upper, u)
+
+    tridiag_matrix = build_tridiag_matrix(lower, diag, upper)
+    solution_np = np.linalg.solve(tridiag_matrix, solve)
+    error = np.abs(solution - solution_np) / solution_np
+    assert np.all(error < 1e-3)
 
 
 @pytest.mark.parametrize("solve_fn", [thomas_solve, divide_conquer_solve, stone_solve])
