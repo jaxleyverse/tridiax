@@ -101,7 +101,6 @@ def thomas_backsub_lower(solve: jnp.ndarray, lower: jnp.ndarray, diag: jnp.ndarr
     return jnp.flip(solution)
 
 
-
 def _u_upper_update(i, val):
     u_upper, upper, diag, lower = val
     u_upper = u_upper.at[i].set(upper[i] / (diag[i] - lower[i - 1] * u_upper[i - 1]))
