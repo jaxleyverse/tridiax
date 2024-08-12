@@ -48,8 +48,11 @@ solution = divide_conquer_solve(lower, diag, upper, solve, indexing=indexing)
 
 ### Installation
 
+`tridiax` is available on [`pypi`](https://pypi.org/project/tridiax/):
 ```sh
-git clone https://github.com/mackelab/tridiax.git
-cd tridiax
-pip install -e .
+pip install tridiax
+```
+This will install `tridiax` with CPU support. If you want GPU support, follow the instructions on the [`JAX` github repository](https://github.com/google/jax) to install `JAX` with GPU support (in addition to installing tridiax). For example, for NVIDIA GPUs, run
+```sh
+pip install -U "jax[cuda12]"
 ```
