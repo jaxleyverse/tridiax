@@ -1,6 +1,6 @@
 [project]
 name = "tridiax"
-version = "0.2.0"
+version = "0.2.1"
 description = "Solving tridiagonal systems."
 authors = [
     { name = "jaxleyverse", email = "jaxleyverse@gmail.com"},

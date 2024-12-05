@@ -1,3 +1,8 @@
+# v0.2.1
+
+- Move padding into the upper and lower solves (#6, @michaeldeistler)
+
+
 # v0.2.0
 
 - Enable `stone` solver for systems that are not powers of two (#5, @michaeldeistler, thanks @briandepasquale).
