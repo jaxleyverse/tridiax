@@ -1,9 +1,11 @@
 # This file is part of tridiax, a toolkit for solving tridiagonal systems. tridiax is
 # licensed under the Apache License Version 2.0, see <https://www.apache.org/licenses/>
 
+from math import log
 from typing import Tuple
 
 import jax.numpy as jnp
+import numpy as np
 
 
 def stone_solve(
@@ -22,12 +24,24 @@ def stone_solve(
     2) Triangularization: Solve Ly = b
     3) Backsubstitution: Solve Ux = y
     """
+    dim = len(diag)
+
+    # The stone solver only supports powers of two. Thus, we pad here.
+    power_of_two = np.log2(dim)
+    if not power_of_two.is_integer():
+        dim_gap = int(2 ** np.ceil(power_of_two) - dim)
+        ones_pad = jnp.ones(dim_gap)
+        zeros_pad = jnp.zeros(dim_gap)
+        diag = jnp.concatenate([diag, ones_pad])
+        solve = jnp.concatenate([solve, ones_pad])
+        upper = jnp.concatenate([upper, zeros_pad])
+        lower = jnp.concatenate([lower, zeros_pad])
+
     u, upper, y = stone_triang_upper(
         lower, diag, upper, solve, stabilize=stabilize, optimized_lu=optimized_lu
     )
     x = stone_backsub_lower(y, upper, u)
-
-    return x
+    return x[:dim]  # Need to trim in case we padded to power of 2.
 
 
 def stone_triang_lower(

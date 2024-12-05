@@ -64,6 +64,23 @@ def test_solver_accuracy(solve_fn):
     assert np.all(error < 1e-3)
 
 
+@pytest.mark.parametrize("solve_fn", [thomas_solve, stone_solve])
+@pytest.mark.parametrize("dim", [1, 2, 3, 4, 5, 6, 7, 8, 10, 13, 16])
+def test_solver_accuracy_additional_dim(solve_fn, dim):
+    """Does not test the divide_conquer solve as it only supports powers of 2."""
+    _ = np.random.seed(0)
+    diag = jnp.asarray(np.random.randn(dim))
+    upper = jnp.asarray(np.random.randn(dim - 1))
+    lower = jnp.asarray(np.random.randn(dim - 1))
+    solve = jnp.asarray(np.random.randn(dim))
+    solution = solve_fn(lower, diag, upper, solve)
+
+    tridiag_matrix = build_tridiag_matrix(lower, diag, upper)
+    solution_np = np.linalg.solve(tridiag_matrix, solve)
+    error = np.abs(solution - solution_np) / solution_np
+    assert np.all(error < 1e-3)
+
+
 @pytest.mark.parametrize("solve_name", ["thomas", "stone"])
 def test_solver_accuracy_lower_first(solve_name):
     dim = 32
