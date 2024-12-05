@@ -24,24 +24,11 @@ def stone_solve(
     2) Triangularization: Solve Ly = b
     3) Backsubstitution: Solve Ux = y
     """
-    dim = len(diag)
-
-    # The stone solver only supports powers of two. Thus, we pad here.
-    power_of_two = np.log2(dim)
-    if not power_of_two.is_integer():
-        dim_gap = int(2 ** np.ceil(power_of_two) - dim)
-        ones_pad = jnp.ones(dim_gap)
-        zeros_pad = jnp.zeros(dim_gap)
-        diag = jnp.concatenate([diag, ones_pad])
-        solve = jnp.concatenate([solve, ones_pad])
-        upper = jnp.concatenate([upper, zeros_pad])
-        lower = jnp.concatenate([lower, zeros_pad])
-
     u, upper, y = stone_triang_upper(
         lower, diag, upper, solve, stabilize=stabilize, optimized_lu=optimized_lu
     )
     x = stone_backsub_lower(y, upper, u)
-    return x[:dim]  # Need to trim in case we padded to power of 2.
+    return x
 
 
 def stone_triang_lower(
@@ -57,12 +44,25 @@ def stone_triang_lower(
     The upper diagonal of U is `upper`. The main diagonal of L is 1. Notation follows
     Stone (1973).
     """
+    dim = len(diag)
+
+    # The stone solver only supports powers of two. Thus, we pad here.
+    power_of_two = np.log2(dim)
+    if not power_of_two.is_integer():
+        dim_gap = int(2 ** np.ceil(power_of_two) - dim)
+        ones_pad = jnp.ones(dim_gap)
+        zeros_pad = jnp.zeros(dim_gap)
+        diag = jnp.concatenate([diag, ones_pad])
+        solve = jnp.concatenate([solve, ones_pad])
+        upper = jnp.concatenate([upper, zeros_pad])
+        lower = jnp.concatenate([lower, zeros_pad])
+
     if optimized_lu:
         u, m = _lu(lower, diag, upper, solve, stabilize=stabilize)
     else:
         u, m = _lu_matmul(lower, diag, upper, solve, stabilize=stabilize)
     y = _solve_l(solve, m)
-    return u, upper, y
+    return u[:dim], upper[: dim - 1], y[:dim]  # Trim in case we padded to power of 2.
 
 
 def stone_triang_upper(
@@ -88,7 +88,18 @@ def stone_triang_upper(
 def stone_backsub_upper(
     solve: jnp.ndarray, upper: jnp.ndarray, diag: jnp.ndarray
 ) -> jnp.ndarray:
-    return _solve_u(solve, upper, diag)
+    dim = len(diag)
+
+    # The stone solver only supports powers of two. Thus, we pad here.
+    power_of_two = np.log2(dim)
+    if not power_of_two.is_integer():
+        dim_gap = int(2 ** np.ceil(power_of_two) - dim)
+        ones_pad = jnp.ones(dim_gap)
+        zeros_pad = jnp.zeros(dim_gap)
+        diag = jnp.concatenate([diag, ones_pad])
+        solve = jnp.concatenate([solve, ones_pad])
+        upper = jnp.concatenate([upper, zeros_pad])
+    return _solve_u(solve, upper, diag)[:dim]  # Trim in case we padded to power of 2.
 
 
 def stone_backsub_lower(solve: jnp.ndarray, lower: jnp.ndarray, diag: jnp.ndarray):
