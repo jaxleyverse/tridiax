@@ -13,8 +13,12 @@ import numpy as np
 import pytest
 from jax import grad, jit
 
-from tridiax import (divide_conquer_index, divide_conquer_solve, stone_solve,
-                     thomas_solve)
+from tridiax import (
+    divide_conquer_index,
+    divide_conquer_solve,
+    stone_solve,
+    thomas_solve,
+)
 from tridiax.stone import stone_backsub_lower, stone_triang_upper
 from tridiax.thomas import thomas_backsub_lower, thomas_triang_upper
 
@@ -121,9 +125,42 @@ def test_jit(solve_fn):
     _ = jitted_solver(lower, diag, upper, solve)
 
 
+@pytest.mark.parametrize("solve_fn", [thomas_solve, stone_solve])
+@pytest.mark.parametrize("dim", [1, 2, 3, 4, 5, 6, 7, 8, 10])
+def test_jit_other_ndim(solve_fn, dim):
+    _ = np.random.seed(0)
+    diag = jnp.asarray(np.random.randn(dim))
+    upper = jnp.asarray(np.random.randn(dim - 1))
+    lower = jnp.asarray(np.random.randn(dim - 1))
+    solve = jnp.asarray(np.random.randn(dim))
+
+    jitted_solver = jit(solve_fn)
+    _ = jitted_solver(lower, diag, upper, solve)
+
+
 @pytest.mark.parametrize("solve_fn", [thomas_solve, divide_conquer_solve, stone_solve])
 def test_grad(solve_fn):
     dim = 32
+    _ = np.random.seed(0)
+    diag = jnp.asarray(np.random.randn(dim))
+    upper = jnp.asarray(np.random.randn(dim - 1))
+    lower = jnp.asarray(np.random.randn(dim - 1))
+    solve = jnp.asarray(np.random.randn(dim))
+
+    def sum_solution(vals):
+        lower, diag, upper, solve = vals
+        x = solve_fn(lower, diag, upper, solve)
+        return jnp.sum(x)
+
+    jitted_grad = jit(grad(sum_solution))
+    gradient = jitted_grad((lower, diag, upper, solve))
+    for g in gradient:
+        assert jnp.invert(jnp.any(jnp.isnan(g))), "Found NaN in gradient."
+
+
+@pytest.mark.parametrize("solve_fn", [thomas_solve, stone_solve])
+@pytest.mark.parametrize("dim", [1, 2, 3, 4, 5, 6, 7, 8, 10])
+def test_grad_other_ndim(solve_fn, dim):
     _ = np.random.seed(0)
     diag = jnp.asarray(np.random.randn(dim))
     upper = jnp.asarray(np.random.randn(dim - 1))
