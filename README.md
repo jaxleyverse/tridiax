@@ -16,7 +16,7 @@ algorithm and Stone's algorithm will be faster on GPU.
 
 ### Known limitations
 
-Currently, all solvers are only tested for systems whose dimensionality is an exponential of `2`.
+Currently, `divide_conquer` solver only supports systems whose dimensionality is a power of `2`.
 
 
 ### Usage
